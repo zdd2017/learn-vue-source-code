@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="root" name="root2">
+        <p>
+            {{message}}
+        </p>
+        {{name.firstName}}
+    </div>
+</body>
+
+</html>
+
+<script>
+    // 解决上一次提出的三个问题
+    function myVue(options) {
+        this._el = options.el;
+        this._data = options.data;
+
+        this._templateDOM = document.querySelector(options.el);
+        this.render()
+    }
+    myVue.prototype.render = function () {
+        this.compile()
+    }
+    myVue.prototype.compile = function () {
+        let generateNode = this._templateDOM.cloneNode(true);
+        compile(generateNode, this._data)
+        this.update(this._templateDOM, generateNode)
+    }
+    // 用新模板替换旧的
+    myVue.prototype.update = function (root, template) {
+        root.parentNode.replaceChild(template, root)
+    }
+    // 用数据替换模板中的变量
+    function compile(generateNode, data) {
+        // 为什么上来就找childs
+        let childs = generateNode.childNodes;
+        for (let i = 0; i < childs.length; i++) {
+            //     // 元素节点
+            if (childs[i].nodeType === 1) {
+                this.compile(childs[i], data)
+            }
+            //     // 文本节点
+            else if (childs[i].nodeType === 3) {
+                let val = childs[i].nodeValue;
+                // console.log(val)
+                // 正则匹配 ??为什么要取消贪婪
+                let reg = /\{\{(.+)\}\}/g
+                // 把匹配到的内容替换成data里的值
+                let txt = val.replace(reg, function (oldVal, newVal) {
+                    // console.log(newVal)
+                    // 回调函数的第一个参数表示匹配到的内容，第n+1个参数表示第n个分组
+                    let key = newVal.trim()
+                    // 没有嵌套的对象属性
+                    // return data[key]
+                    return getValueByPath(data, key)
+                    // 不 return 直接在里面替换也行？
+                    // childs[i].nodeValue = data[key]
+                })
+                childs[i].nodeValue = txt
+            }
+        }
+    }
+
+    // 对象深层查找
+    function getValueByPath(obj, path) {
+        let pathArr = path.split('.');
+        let prop;
+        // 难点
+        while (prop = pathArr.shift()) {
+            obj = obj[prop]
+        }
+        return obj
+    }
+
+    // 将DOM转换为虚拟DOM
+    class vNode {
+        constructor(tag, nodeType, value, attributes) {
+            this.tag = tag;
+            this.nodeType = nodeType;
+            this.value = value;
+            this.attributes = attributes;
+            this.children = [];
+        }
+        appendChild(child) {
+            this.children.push(child)
+        }
+    }
+    let root = document.querySelector('#root')
+    // 虚拟DOM转换为DOM
+    function toDom(vNode) {
+        // 判断节点类型
+        if (vNode.nodeType === 1) {
+            // 创建元素节点
+            let node = document.createElement(vNode.tag)
+            // 创建属性节点
+            for (let key in vNode.attributes) {
+                let value = vNode.attributes[key]
+                node.setAttribute(key, value)
+            }
+            return node;
+            for (let i = 0; i < vNode.children.length; i++) {
+                toDom(vNode.children[i])
+            }
+        } else if (vNode.nodeType === 3) {
+            let text = document.createTextNode(vNode.value);
+            return text
+        }
+    }
+
+    function toVNode(dom) {
+        let nodeType = dom.nodeType;
+        let v_node = null
+        // 元素节点需要遍历看是否有子节点
+        if (nodeType === 1) {
+            let tag = dom.nodeName.toLowerCase();
+            let attr = dom.attributes;
+            // attributes结构看不懂 类数组？
+            // console.log('attr:', attributes)
+            let attributes = {}
+            for (let i = 0; i < attr.length; i++) {
+                attributes[attr[i].nodeName] = attr[i].nodeValue
+            }
+            v_node = new vNode(tag, nodeType, undefined, attributes)
+            for (i = 0; i < dom.childNodes.length; i++) {
+                let child = toVNode(dom.childNodes[i])
+                v_node.appendChild(child)
+            }
+        } else if (nodeType === 3) {
+            let value = dom.nodeValue;
+            v_node = new vNode(undefined, nodeType, value, undefined)
+        }
+        return v_node
+    }
+
+    let test = toVNode(root)
+    console.log(test, 'test')
+    toDom(root, test)
+
+    function isHTML(tagName) {
+        let tags = 'div,p,span,ul,li'.split(',')
+        let set = {}
+        tags.forEach(key => {
+            set[key] = true
+        })
+        return !!set[tagName.toLowerCase()]
+    }
+    console.log(isHTML('x'))
+
+    new myVue({
+        el: '#root',
+        data: {
+            message: 'hello world',
+            name: {
+                firstName: 'san'
+            }
+        }
+    })
+</script>

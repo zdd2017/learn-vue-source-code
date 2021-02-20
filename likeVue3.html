@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="root" name="root2">
+        <p>
+            {{name}}
+        </p>
+        {{message}}
+    </div>
+</body>
+
+</html>
+
+<script>
+    // 2的问题: 每次数据变化都会调用render，重复生成模板，性能损耗
+    // 
+    function myVue(options) {
+        this._data = options.data;
+        this._temp = document.querySelector(options.el);
+        this.mount()
+    }
+    myVue.prototype.mount = function () {
+        // 生成虚拟DOM ???为什么不直接调用，而是要用this.render存起来
+        this.render = this.createRenderFn()
+
+        // 把生成的虚拟DOM挂载到页面上
+        this.mountComponent()
+    }
+
+    myVue.prototype.createRenderFn = function () {
+        // 把模板的真实DOM转换为虚拟DOM
+        let ast = toVNode(this._temp)
+        // 将ast中的变量用数据替换 ???这里是不是用闭包缓存_temp
+        return function render() {
+            // ???什么时候用函数，什么时候需要绑在原型上
+            let _temp = combine(ast, this._data)
+            return _temp
+        }
+    }
+
+    // combine 和 compile 的区别 ？？？ 为什么combine里还要再new vNode，不是直接替换变量
+    // 模板——》ast——》虚拟DOM
+    function combine(generateNode, data) {
+        let nodeType = generateNode.nodeType;
+        if (nodeType === 1) {
+            let tag = generateNode.tag
+            let attributes = generateNode.attributes
+            let children = generateNode.children
+            let node = new vNode(tag, nodeType, undefined, attributes)
+            // 处理子节点
+            for (let i = 0; i < children.length; i++) {
+                let childNode = combine(children[i], data)
+                node.appendChild(childNode)
+            }
+            return node
+        }
+        else if (nodeType === 3) {
+            let val = generateNode.value;
+            // 正则匹配 ??为什么要取消贪婪
+            let reg = /\{\{(.+)\}\}/g
+            // 把匹配到的内容替换成data里的值
+            let txt = val.replace(reg, function (oldVal, newVal) {
+                // 回调函数的第一个参数表示匹配到的内容，第n+1个参数表示第n个分组
+                let key = newVal.trim()
+                // 没有嵌套的对象属性
+                return getValueByPath(data, key)
+                // 不 return 直接在里面替换也行？
+                // childs[i].nodeValue = data[key]
+            })
+            let node = new vNode(undefined, nodeType, txt, undefined)
+            return node;
+        }
+
+    }
+
+    myVue.prototype.mountComponent = function () {
+        // 懵逼，为什么 要写成这样
+        let mount = () => {
+            this.update(this.render())
+        }
+        mount()
+        //mount.call(this)
+
+    }
+
+    myVue.prototype.update = function (temp) {
+        // 如何做到缓存的，需不需要克隆原模板？？？
+        let newTemp = toDom(temp)
+        this._temp.parentNode.replaceChild(newTemp, this._temp)
+    }
+    // 对象深层查找
+    function getValueByPath(obj, path) {
+        let pathArr = path.split('.');
+        let prop;
+        // 难点
+        while (prop = pathArr.shift()) {
+            obj = obj[prop]
+        }
+        return obj
+    }
+
+    // 虚拟DOM转换为DOM
+    function toDom(vNode) {
+        // 判断节点类型
+        if (vNode.nodeType === 1) {
+            // 创建元素节点
+            let node = document.createElement(vNode.tag)
+            // 创建属性节点
+            for (let key in vNode.attributes) {
+                let value = vNode.attributes[key]
+                node.setAttribute(key, value)
+            }
+            for (let i = 0; i < vNode.children.length; i++) {
+                node.appendChild(toDom(vNode.children[i]))
+            }
+            return node;
+        } else if (vNode.nodeType === 3) {
+            let text = document.createTextNode(vNode.value);
+            return text
+        }
+    }
+
+    class vNode {
+        constructor(tag, nodeType, value, attributes) {
+            this.tag = tag;
+            this.nodeType = nodeType;
+            this.value = value;
+            this.attributes = attributes;
+            this.children = [];
+        }
+        appendChild(child) {
+            this.children.push(child)
+        }
+    }
+
+    function toVNode(dom) {
+        let nodeType = dom.nodeType;
+        let v_node = null
+        // 元素节点需要遍历看是否有子节点
+        if (nodeType === 1) {
+            let tag = dom.nodeName.toLowerCase();
+            let attr = dom.attributes;
+            // attributes结构看不懂 类数组？
+            // console.log('attr:', attributes)
+            let attributes = {}
+            for (let i = 0; i < attr.length; i++) {
+                attributes[attr[i].nodeName] = attr[i].nodeValue
+            }
+            v_node = new vNode(tag, nodeType, undefined, attributes)
+            for (i = 0; i < dom.childNodes.length; i++) {
+                let child = toVNode(dom.childNodes[i])
+                v_node.appendChild(child)
+            }
+        } else if (nodeType === 3) {
+            let value = dom.nodeValue;
+            v_node = new vNode(undefined, nodeType, value, undefined)
+        }
+        return v_node
+    }
+
+    new myVue({
+        el: '#root',
+        data: {
+            name: 'storyer',
+            message: '化压力为动力'
+        }
+    })
+</script>

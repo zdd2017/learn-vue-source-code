@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script> -->
+</head>
+
+<body>
+    <div id="root">
+        <p>
+            {{message}}
+        </p>
+        {{name}}
+    </div>
+</body>
+
+</html>
+
+<script>
+    // 1.创建html模板
+    // 2.创建vue实例，提供模板所需要的数据
+    // 3.将vue挂载到页面上
+
+    // let vm = new Vue({
+    //     el: '#root',
+    //     data() {
+    //         return {
+    //             message: 'hello world'
+    //         }
+    //     }
+    // })
+
+    // 思路：获取文本节点用递归（没有直接获取文本节点的方法）;{{}}部分用正则判断
+    let data = {
+        message: 'hello world',
+        name: '张三'
+    }
+    let template = document.querySelector('#root');
+    function compile(template, data) {
+        let childs = template.childNodes;
+        for (let i = 0; i < childs.length; i++) {
+            // 元素节点
+            if (childs[i].nodeType === 1) {
+                compile(childs[i], data)
+            }
+            // 文本节点
+            else if (childs[i].nodeType === 3) {
+                let val = childs[i].nodeValue;
+                // console.log(val)
+                // 正则匹配 ??为什么要取消贪婪
+                let reg = /\{\{(.+)\}\}/g
+                // 把匹配到的内容替换成data里的值
+                let txt = val.replace(reg, function (oldVal, newVal) {
+                    // console.log(newVal)
+                    // 回调函数的第一个参数表示匹配到的内容，第n+1个参数表示第n个分组
+                    let key = newVal.trim()
+                    return data[key]
+                    // 不 return 直接在里面替换也行？
+                    // childs[i].nodeValue = data[key]
+                })
+                childs[i].nodeValue = txt
+            }
+        }
+    }
+
+    // 直接把template传入会丢失原始模板
+    // compile(template, data)
+
+    // 复制一份原始模板
+    let generateNode = template.cloneNode(true);
+
+    // 用数据替换模板中的变量
+    compile(generateNode, data);
+
+    // 把生成的DOM元素挂载到根节点上
+    template.parentNode.replaceChild(generateNode, template)
+</script>
