@@ -77,6 +77,7 @@ function combine(generateNode, data) {
         let reg = /\{\{(.+)\}\}/g
         // 把匹配到的内容替换成data里的值
         let txt = val.replace(reg, function (oldVal, newVal) {
+            console.log(oldVal, newVal)
             // 回调函数的第一个参数表示匹配到的内容，第n+1个参数表示第n个分组
             let key = newVal.trim()
             // 没有嵌套的对象属性
@@ -85,6 +86,9 @@ function combine(generateNode, data) {
             // childs[i].nodeValue = data[key]
         })
         let node = new vNode(undefined, nodeType, txt, undefined)
+        new Watcher(data, val, (newVal) => {
+            // 更新
+        })
         return node;
     }
 

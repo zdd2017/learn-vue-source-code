@@ -11,7 +11,7 @@
 <body>
     <div id="root" name="root2">
         <p>
-            {{name}}
+            {{name}}-{{message}}
         </p>
         {{message}}
     </div>
@@ -20,6 +20,16 @@
 </html>
 
 <script>
+    let ARRAY_METHOD = [
+        'push',
+        'pop',
+        'shift',
+        'unshift',
+        'reverse',
+        'sort',
+        'splice',
+    ];
+
     // 代理方法（app._data.name --> app.name）
     function proxy(app, prop, key) {
         Object.defineProperty(app, key, {
@@ -218,25 +228,16 @@
             },
             set(newValue) {
                 // 处理直接赋值对象不能响应化的情况
-                // if (typeof newValue === 'object') {
-                reactify(newValue, vm)
-                // }
-                value = newValue;
+                if (typeof newValue === 'object') {
+                    reactify(newValue, vm)
+                } else {
+                    value = newValue;
+                }
                 // 数据改变刷新模板
                 that.mountComponent()
             }
         })
     }
-
-    let ARRAY_METHOD = [
-        'push',
-        'pop',
-        'shift',
-        'unshift',
-        'reverse',
-        'sort',
-        'splice',
-    ];
 
     // ???为什么老师的方法要复杂许多
     function reactify(obj, vm) {

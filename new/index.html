@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="app">
+        <!-- 双向数据绑定 靠的是表单 -->
+        <!-- <input type="text" v-model="message.a"> -->
+        <!-- <div>快到周末了</div> -->
+        <div id="app1"> {{message.a}} - {{b}}</div>
+        <!-- <div>{{b}}</div> -->
+    </div>
+
+    <script src="./watcher.js"></script>
+    <script src="./dep.js"></script>
+    <script src="./observer.js"></script>
+    <script src="./compile.js"></script>
+    <script src="./myVue.js"></script>
+    <script>
+        // 我们的数据一般都挂载在vm上
+        let vm = new MyVue({
+            el: '#app',
+            data: {
+                message: { a: '元素a' },
+                b: '元素b',
+                // arr: [1, { c: '数组元素' }]
+            }
+        })
+    </script>
+</body>
+
+</html>

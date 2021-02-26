@@ -1,0 +1,57 @@
+MVC
+M -- Model 模型
+V -- View 视图
+C -- Controller 控制器
+
+MVVM
+M -- Model 模型
+V -- View 视图
+VM -- ViewModel
+
+MVC的看法是 界面上的每一个变化都是一个事件  我们只需要针对每个事件来写一堆代码 来吧用户的输入转化成model里的对象
+这个代码就是controller
+所有通信都是单向的。
+
+ViewModel：就是与界面(view)对应的Model。因为，数据库结构往往是不能直接跟界面控件一一对应上的，所以，需要再定义一个数据对象专门对应view上的控件。而ViewModel的职责就是把model对象封装成可以显示和接受输入的界面数据对象。
+
+模板编译(Compile)
+将模板与数据结合生成页面
+判断子节点类型，做不同处理。元素节点要提取出属性、样式、事件、自定义自定义指令等；文本节点要将变量用data中的真实数据替换
+
+
+数据劫持(Observer)
+利用 Object.defineProperty 在 get 阶段
+在 set 阶段，也就是数据更新的时候 通知订阅了该数据的watcher去update
+
+订阅：在一个对象里存储 eventName 和 handle
+
+
+
+观察者(Watcher) 
+干嘛的？？
+观察/订阅 某个属性，在这个属性发生变化的时候做一些事情
+
+什么时候订阅？
+Object.defineProperty get 时如果存在Dep.target就订阅
+
+Dep.target 什么时候设置的？
+调用watcher类的get方法时 何时？
+
+compile的时候，也就是 new Vue的时候，对每个节点都进行compile,new Watcher 并将当前watcher实例加入Dep.target中
+
+思路：new Vue --> compile --> new Watcher(加入Dep.target) 
+Object.defineProperty get 时如果存在Dep.target就订阅,也就是将当前watcher加入到dep中
+
+订阅器(Dep)
+dep 的 subs 里什么时候会存在一个以上的元素
+
+流程梳理：
+1.创建 Vue 实例，把数据等信息绑定到实例上。先进行数据劫持，再进行模板编译
+2.数据劫持：利用Object.defineProperty劫持每个变量，每个变量都有自己的dep存储watcher，并且在get、set阶段做一些事情。
+get阶段：如果存在watcher，将当前watcher放入依赖收集dep.subs数组中。第一次执行时即compile之前还不存在watcher，此时subs为空，在comppile阶段new watcher了，此时subs不为空
+set阶段：更改数据，通知dep中的watcher执行回调函数，回调函数就是更新视图的操作
+3.编译：检查页面，节点分为元素节点和文本节点。元素节点注意解析 属性、事件、自定义指令等；文本节点则替换{{}}部分。另外，对每个与data里的数据有关的变量进行观察，也就是新建watcher实例。每个匹配到的变量都会绑定一个watcher，变量在页面使用了几次就有几个watcher
+
+只会在compile阶段会添加watcher到subs里，修改值的时候不会
+
+每次改变视图都会调用get方法，

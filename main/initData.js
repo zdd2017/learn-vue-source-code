@@ -81,11 +81,15 @@ function defineReactive(vm, obj, key, value, enumerable) {
         observe(value); // 递归
     }
     let that = this
+    let dep = new Dep()
     Object.defineProperty(obj, key, {
         configurable: true,
         enumerable: !!enumerable,
         get() {
             return value
+            if (Dep.target) {
+                dep.addSub(Dep.target)
+            }
         },
         set(newValue) {
             // 处理直接赋值对象不能响应化的情况
@@ -94,7 +98,9 @@ function defineReactive(vm, obj, key, value, enumerable) {
             // }
             value = newValue;
             // 数据改变刷新模板
-            that.mountComponent()
+            // that.mountComponent()
+            // 用notify替换掉上面重新刷新模板的方法
+            dep.notify()
         }
     })
 }
